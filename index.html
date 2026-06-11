@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sunil Burigen — Senior Network Engineer · Bellevue, WA</title>
+<meta name="description" content="Sunil Burigen — Senior Network Engineer with 12+ years across enterprise, cloud, and edge. VXLAN/EVPN fabrics, network automation (Python, Ansible, Terraform), and local AI agents for operations.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink-deep:#0A0E1A;
+  --ink-raised:#0F1526;
+  --ink-panel:#121A2E;
+  --line:rgba(148,163,196,0.16);
+  --line-soft:rgba(148,163,196,0.09);
+  --text-bright:#E8ECF6;
+  --text-body:#B7C0D8;
+  --text-dim:#8390AE;
+  --amber:#FFB454;
+  --amber-deep:#E89A33;
+  --cyan:#67E8F9;
+  --ok:#4ADE80;
+  --font-display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
+  --font-body:"Instrument Sans",system-ui,-apple-system,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --max:1100px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  background:var(--ink-deep);
+  color:var(--text-body);
+  font-family:var(--font-body);
+  font-size:17px;
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--amber);color:var(--ink-deep)}
+a{color:inherit;text-decoration:none}
+a:focus-visible,button:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:2px}
+.mono{font-family:var(--font-mono)}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 28px}
+.skip{position:absolute;left:-9999px;top:0;background:var(--amber);color:var(--ink-deep);padding:8px 14px;font-family:var(--font-mono);font-size:13px;z-index:100}
+.skip:focus{left:12px;top:12px}
+
+/* ---------- status strip ---------- */
+.status-strip{
+  border-bottom:1px solid var(--line-soft);
+  font-family:var(--font-mono);
+  font-size:11px;
+  letter-spacing:.08em;
+  color:var(--text-dim);
+  text-transform:uppercase;
+}
+.status-strip .wrap{
+  display:flex;justify-content:space-between;align-items:center;
+  padding-top:9px;padding-bottom:9px;gap:16px;flex-wrap:wrap;
+}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;vertical-align:1px}
+.dot.ok{background:var(--ok);box-shadow:0 0 8px rgba(74,222,128,.55)}
+
+/* ---------- nav ---------- */
+.nav{position:sticky;top:0;z-index:50;background:rgba(10,14,26,.82);backdrop-filter:blur(10px);border-bottom:1px solid var(--line-soft)}
+.nav .wrap{display:flex;justify-content:space-between;align-items:center;padding-top:16px;padding-bottom:16px}
+.brand{font-family:var(--font-mono);font-size:15px;font-weight:600;color:var(--text-bright);letter-spacing:.02em}
+.brand .tick{color:var(--amber)}
+.nav-links{display:flex;gap:24px;font-family:var(--font-mono);font-size:12.5px;letter-spacing:.04em}
+.nav-links a{color:var(--text-dim);transition:color .18s ease}
+.nav-links a:hover{color:var(--amber)}
+@media (max-width:720px){.nav-links{display:none}}
+
+/* ---------- hero ---------- */
+.hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line-soft)}
+#net{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hero::after{content:"";position:absolute;inset:0;background:
+  radial-gradient(ellipse 90% 70% at 28% 42%, rgba(10,14,26,0) 0%, rgba(10,14,26,.55) 62%, rgba(10,14,26,.92) 100%);
+  pointer-events:none}
+.hero-inner{position:relative;z-index:2;padding:112px 0 96px}
+.eyebrow{
+  font-family:var(--font-mono);font-size:12px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--amber);margin-bottom:26px;
+}
+.eyebrow::before{content:"// ";color:var(--text-dim)}
+h1{
+  font-family:var(--font-display);
+  font-size:clamp(2.5rem,5.6vw,4.35rem);
+  font-weight:700;line-height:1.04;letter-spacing:-.015em;
+  color:var(--text-bright);max-width:15ch;
+}
+h1 .hl{color:var(--amber)}
+.hero-sub{max-width:56ch;margin-top:28px;font-size:1.075rem;color:var(--text-body)}
+.cta-row{display:flex;gap:14px;margin-top:40px;flex-wrap:wrap}
+.btn{
+  display:inline-flex;align-items:center;gap:9px;
+  font-family:var(--font-mono);font-size:13.5px;font-weight:500;letter-spacing:.03em;
+  padding:13px 22px;border-radius:4px;border:1px solid transparent;
+  transition:transform .16s ease,background .16s ease,border-color .16s ease,color .16s ease;
+  cursor:pointer;
+}
+.btn:hover{transform:translateY(-1px)}
+.btn-primary{background:var(--amber);color:var(--ink-deep);font-weight:600}
+.btn-primary:hover{background:#FFC476}
+.btn-ghost{border-color:var(--line);color:var(--text-bright)}
+.btn-ghost:hover{border-color:var(--amber);color:var(--amber)}
+.hero-caption{
+  position:absolute;left:28px;bottom:18px;z-index:2;
+  font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;
+  color:var(--text-dim);text-transform:uppercase;
+}
+.hero-caption .pkt{color:var(--amber)}
+
+/* ---------- sections ---------- */
+section{padding:96px 0}
+.sec-head{margin-bottom:54px}
+h2{
+  font-family:var(--font-display);
+  font-size:clamp(1.7rem,3vw,2.35rem);
+  font-weight:650;letter-spacing:-.01em;color:var(--text-bright);
+  line-height:1.15;max-width:26ch;
+}
+.sec-divider{border-top:1px solid var(--line-soft)}
+
+/* ---------- profile ---------- */
+.profile-grid{display:grid;grid-template-columns:1.35fr .9fr;gap:64px;align-items:start}
+@media (max-width:820px){.profile-grid{grid-template-columns:1fr;gap:44px}}
+.bio p+p{margin-top:18px}
+.bio strong{color:var(--text-bright);font-weight:600}
+.facts{
+  background:var(--ink-raised);border:1px solid var(--line);border-radius:8px;
+  padding:26px 26px 20px;font-family:var(--font-mono);font-size:12.5px;
+}
+.facts-title{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim);margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--line-soft)}
+.facts dl{display:grid;grid-template-columns:auto 1fr;row-gap:13px;column-gap:18px}
+.facts dt{color:var(--text-dim)}
+.facts dd{color:var(--text-bright);text-align:right}
+.facts .st{color:var(--ok)}
+
+/* ---------- capabilities ---------- */
+.cap-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+@media (max-width:880px){.cap-grid{grid-template-columns:1fr}}
+.cap-card{
+  border:1px solid var(--line);border-radius:8px;background:var(--ink-raised);
+  padding:30px 28px;transition:border-color .2s ease,transform .2s ease;
+}
+.cap-card:hover{border-color:rgba(255,180,84,.45);transform:translateY(-3px)}
+.led{width:8px;height:8px;border-radius:50%;background:#2B3550;margin-bottom:22px;transition:background .2s ease,box-shadow .2s ease}
+.cap-card:hover .led{background:var(--amber);box-shadow:0 0 12px rgba(255,180,84,.7)}
+.cap-card h3{font-family:var(--font-display);font-size:1.22rem;font-weight:650;color:var(--text-bright);margin-bottom:12px}
+.cap-card>p{font-size:.94rem;color:var(--text-dim);margin-bottom:20px}
+.cap-card ul{list-style:none;font-family:var(--font-mono);font-size:12.5px;color:var(--text-body)}
+.cap-card li{padding:7px 0;border-top:1px solid var(--line-soft)}
+.cap-card li::before{content:"→ ";color:var(--amber)}
+
+/* ---------- projects ---------- */
+.proj{display:grid;grid-template-columns:.9fr 1.3fr;gap:40px;padding:42px 0;border-top:1px solid var(--line-soft)}
+.proj:last-of-type{border-bottom:1px solid var(--line-soft)}
+@media (max-width:760px){.proj{grid-template-columns:1fr;gap:14px}}
+.proj h3{font-family:var(--font-display);font-size:1.45rem;font-weight:650;color:var(--text-bright);line-height:1.2;max-width:16ch}
+.proj h3 a{transition:color .18s ease}
+.proj:hover h3,.proj h3 a:hover{color:var(--amber)}
+.proj-meta{font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);margin-top:10px}
+.proj-body p{color:var(--text-body)}
+.tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.tag{
+  font-family:var(--font-mono);font-size:11.5px;color:var(--text-dim);
+  border:1px solid var(--line);border-radius:99px;padding:4px 12px;
+}
+
+/* ---------- experience / traceroute ---------- */
+.trace{position:relative;margin-left:6px;padding-left:34px;border-left:1px solid var(--line)}
+.hop{position:relative;padding:6px 0 44px}
+.hop:last-child{padding-bottom:6px}
+.hop::before{
+  content:"";position:absolute;left:-39px;top:13px;width:9px;height:9px;border-radius:50%;
+  background:var(--ink-deep);border:2px solid var(--text-dim);
+}
+.hop.current::before{border-color:var(--amber);box-shadow:0 0 10px rgba(255,180,84,.6)}
+.hop-meta{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px}
+.hop.current .hop-meta{color:var(--amber)}
+.hop h3{font-family:var(--font-display);font-size:1.25rem;font-weight:650;color:var(--text-bright)}
+.hop .org{color:var(--text-dim);font-weight:400}
+.hop p{margin-top:8px;font-size:.96rem;color:var(--text-dim);max-width:62ch}
+.hop .env{margin-top:8px;font-family:var(--font-mono);font-size:11px;color:var(--text-dim);letter-spacing:.04em}
+.hop .env::before{content:"env: ";color:var(--amber)}
+
+/* ---------- research & writing ---------- */
+.pub-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media (max-width:760px){.pub-grid{grid-template-columns:1fr}}
+.pub-card{
+  border:1px solid var(--line);border-radius:8px;background:var(--ink-raised);
+  padding:32px 30px;display:flex;flex-direction:column;gap:14px;
+  transition:border-color .2s ease,transform .2s ease;
+}
+.pub-card:hover{border-color:rgba(255,180,84,.45);transform:translateY(-3px)}
+.pub-kicker{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber)}
+.pub-card h3{font-family:var(--font-display);font-size:1.35rem;font-weight:650;color:var(--text-bright)}
+.pub-card p{font-size:.96rem;color:var(--text-dim);flex-grow:1}
+.pub-link{font-family:var(--font-mono);font-size:13px;color:var(--text-bright);transition:color .18s ease}
+.pub-link:hover{color:var(--amber)}
+
+/* ---------- contact ---------- */
+.contact-inner{max-width:680px}
+.contact-inner p{margin-top:20px}
+.contact-links{display:flex;gap:14px;margin-top:38px;flex-wrap:wrap}
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--line-soft);padding:30px 0 40px}
+footer .wrap{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  font-family:var(--font-mono);font-size:11.5px;letter-spacing:.06em;color:var(--text-dim)}
+footer a:hover{color:var(--amber)}
+
+/* ---------- reveal motion ---------- */
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){
+  .reveal{opacity:1;transform:none;transition:none}
+  .btn:hover,.cap-card:hover,.pub-card:hover{transform:none}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="status-strip">
+  <div class="wrap">
+    <span>BELLEVUE, WA · <span id="clock">--:--:--</span> local</span>
+    <span><span class="dot ok"></span>Open to interesting problems</span>
+  </div>
+</div>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top">sburigen<span class="tick">_</span></a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#profile">Profile</a>
+      <a href="#capabilities">Capabilities</a>
+      <a href="#work">Work</a>
+      <a href="#experience">Experience</a>
+      <a href="#research">Research</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero" id="top" style="padding:0">
+    <canvas id="net" aria-hidden="true"></canvas>
+    <div class="wrap hero-inner">
+      <p class="eyebrow reveal">Sunil Burigen · Senior Network Engineer · Bellevue, WA</p>
+      <h1 class="reveal">I build networks — then build the <span class="hl">systems that run them</span>.</h1>
+      <p class="hero-sub reveal">Twelve years designing and operating mission-critical networks across enterprise, cloud, and edge — from BGP at Cisco to VXLAN/EVPN fabrics for AI infrastructure at Armada. The constant: infrastructure should be code — versioned, validated, and automated.</p>
+      <div class="cta-row reveal">
+        <a class="btn btn-primary" href="#work">See selected work ↓</a>
+        <a class="btn btn-ghost" href="#contact">Get in touch</a>
+      </div>
+    </div>
+    <div class="hero-caption">fig. 01 — live topology · <span class="pkt">●</span> packets simulated</div>
+  </section>
+
+  <!-- ============ PROFILE ============ -->
+  <section id="profile">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <p class="eyebrow">Profile</p>
+        <h2>Engineer first. Automator by reflex.</h2>
+      </div>
+      <div class="profile-grid">
+        <div class="bio reveal">
+          <p>Twelve years ago I was engineering BGP and OSPF at <strong>Cisco</strong> for global WAN environments. Since then I've run worldwide enterprise networks for <strong>Mars</strong> across offices, factories, and distribution centers on three continents, built hybrid Azure connectivity at <strong>Microsoft</strong>, and today I design VXLAN/EVPN data center fabrics for distributed edge infrastructure at <strong>Armada AI</strong>.</p>
+          <p>The throughline: networks designed to be operated, not just deployed. I automate provisioning with <strong>Python, Terraform, and Ansible</strong>, keep NetBox as the source of truth, and hold the line on PCI, HIPAA, and SOC2 compliance. Lately, I build <strong>local LLM agents</strong> that answer operational questions against live network data — private by default, deterministic where it counts.</p>
+        </div>
+        <div class="facts reveal" role="complementary" aria-label="Quick facts">
+          <p class="facts-title">show profile · summary</p>
+          <dl>
+            <dt>role</dt><dd>Senior Network Engineer</dd>
+            <dt>org</dt><dd>Armada AI</dd>
+            <dt>focus</dt><dd>DC fabrics · Automation · AI</dd>
+            <dt>certs</dt><dd>CCNP · JNCIA · CMNO</dd>
+            <dt>education</dt><dd>M.S. ECE — NYIT</dd>
+            <dt>base</dt><dd>Bellevue, WA</dd>
+            <dt>status</dt><dd class="st">● operational</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CAPABILITIES ============ -->
+  <section id="capabilities" class="sec-divider">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <p class="eyebrow">Capabilities</p>
+        <h2>Three disciplines, one practice.</h2>
+      </div>
+      <div class="cap-grid">
+        <div class="cap-card reveal">
+          <div class="led"></div>
+          <h3>Network architecture</h3>
+          <p>Cloud-scale fabrics designed for failure — overlays, control planes, and routing that converges before anyone notices.</p>
+          <ul>
+            <li>VXLAN · EVPN · BGP · OSPF · MPLS</li>
+            <li>Cisco ACI · Nexus · Juniper Apstra</li>
+            <li>Zero-trust segmentation · PCI · HIPAA · SOC2</li>
+          </ul>
+        </div>
+        <div class="cap-card reveal">
+          <div class="led"></div>
+          <h3>Cloud &amp; hybrid connectivity</h3>
+          <p>The on-ramp between the data center and the cloud — engineered, not improvised.</p>
+          <ul>
+            <li>AWS Direct Connect · Azure ExpressRoute</li>
+            <li>Equinix fabric &amp; interconnection</li>
+            <li>SD-WAN &amp; global WAN design</li>
+          </ul>
+        </div>
+        <div class="cap-card reveal">
+          <div class="led"></div>
+          <h3>Automation &amp; applied AI</h3>
+          <p>If a task happens twice, it becomes code. If a question gets asked twice, it becomes an agent.</p>
+          <ul>
+            <li>Python · Ansible · Terraform · GitOps</li>
+            <li>NetBox as source of truth</li>
+            <li>Local LLM agents (MLX, on-device)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SELECTED WORK ============ -->
+  <section id="work" class="sec-divider">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <p class="eyebrow">Selected work</p>
+        <h2>Built, shipped, and in use.</h2>
+      </div>
+
+      <article class="proj reveal">
+        <div>
+          <h3><a href="https://github.com/burigensunil88/junos-network-automation" target="_blank" rel="noopener">Junos automation framework ↗</a></h3>
+          <p class="proj-meta">Open source · GitHub</p>
+        </div>
+        <div class="proj-body">
+          <p>A production-grade Infrastructure-as-Code framework for Juniper environments: YAML as the source of truth, Jinja2 templating, and Ansible orchestration across firewall, edge, core, and management tiers — with a Streamlit GUI for configuration generation. Built to kill configuration drift at scale.</p>
+          <div class="tags">
+            <span class="tag">Ansible</span><span class="tag">Jinja2</span><span class="tag">YAML</span><span class="tag">Junos</span><span class="tag">Streamlit</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="proj reveal">
+        <div>
+          <h3>Plain-English IPAM agent</h3>
+          <p class="proj-meta">Local AI · 2026</p>
+        </div>
+        <div class="proj-body">
+          <p>A local AI agent wired into live NetBox data. Ask "what's free in this /16?" and get a correct answer — the language model handles the conversation, while deterministic prefix math handles the truth. No hallucinated subnets, no data leaving the machine.</p>
+          <div class="tags">
+            <span class="tag">Python</span><span class="tag">MLX</span><span class="tag">NetBox API</span><span class="tag">Local LLM</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="proj reveal">
+        <div>
+          <h3>Guarded config pipeline</h3>
+          <p class="proj-meta">In progress</p>
+        </div>
+        <div class="proj-body">
+          <p>Extending the agent from read-only queries to safe action: SSH reachability checks, config generation, and guarded pushes to network devices — with validation gates between intent and execution.</p>
+          <div class="tags">
+            <span class="tag">SSH</span><span class="tag">Automation</span><span class="tag">Safety rails</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="proj reveal">
+        <div>
+          <h3>Small-model ops lab</h3>
+          <p class="proj-meta">Ongoing research</p>
+        </div>
+        <div class="proj-body">
+          <p>Benchmarking compact local models (4B–14B) on Apple Silicon for operational Q&amp;A — mapping exactly where small, private models are good enough for network operations, and where they aren't.</p>
+          <div class="tags">
+            <span class="tag">MLX</span><span class="tag">Qwen</span><span class="tag">Evaluation</span>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============ EXPERIENCE ============ -->
+  <section id="experience" class="sec-divider">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <p class="eyebrow">Experience</p>
+        <h2>traceroute career — 5 hops, 0% packet loss.</h2>
+      </div>
+      <div class="trace">
+        <div class="hop current reveal">
+          <p class="hop-meta">hop 5 · apr 2025 → now</p>
+          <h3>Senior Network Engineer <span class="org">· Armada AI — Bellevue, WA</span></h3>
+          <p>VXLAN/EVPN fabrics for distributed edge data centers. Provisioning automated end-to-end with Python, Terraform, and Ansible; NetBox-governed assets across every network tier; segmentation and compliance built in, not bolted on.</p>
+          <p class="env">Juniper Mist · Apstra · SRX1500 · EX4650 · NetBox</p>
+        </div>
+        <div class="hop reveal">
+          <p class="hop-meta">hop 4 · oct 2022 → apr 2025</p>
+          <h3>Senior Cloud Network Engineer <span class="org">· Mars Inc. — Tampa, FL</span></h3>
+          <p>Led network modernization for a global enterprise: SD-WAN rollout, SDN adoption, and identity-aware zero-trust segmentation for 10,000+ users across corporate offices, manufacturing sites, and branches on multiple continents.</p>
+          <p class="env">Cisco ACI · Meraki MX450 · Nexus 9K/7K · AWS · Equinix</p>
+        </div>
+        <div class="hop reveal">
+          <p class="hop-meta">hop 3 · oct 2021 → oct 2022</p>
+          <h3>Senior Cloud Network Engineer <span class="org">· Microsoft — Tampa, FL</span></h3>
+          <p>Hybrid connectivity between on-prem and Azure at enterprise scale — ExpressRoute, VPN, VNet peering — plus Python automation for monitoring, validation, and connectivity testing.</p>
+          <p class="env">Nexus 7K/5K/2K · Azure · Equinix Cloud Exchange</p>
+        </div>
+        <div class="hop reveal">
+          <p class="hop-meta">hop 2 · mar 2016 → sep 2021</p>
+          <h3>Senior Cloud Network Engineer <span class="org">· Mars Inc. — Mt. Olive, NJ</span></h3>
+          <p>Global AWS Direct Connect and Equinix ECX circuits for hybrid workloads; multi-site migrations from planning to cutover; PCI and HIPAA audit cycles passed on documentation I wrote.</p>
+          <p class="env">Cisco 3750/4500/5000 · NetScaler SDX/VPX · AWS · ACI</p>
+        </div>
+        <div class="hop reveal">
+          <p class="hop-meta">hop 1 · apr 2013 → feb 2016 · origin</p>
+          <h3>Network Engineer <span class="org">· Cisco Systems — San Jose, CA</span></h3>
+          <p>BGP and OSPF routing at WAN scale for global enterprise clients across multiple verticals — where networks taught me how they actually fail, and RCAs taught me how to write.</p>
+          <p class="env">Cisco 2600/2800/3800 routers · 2960/3750/4510 switches</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RESEARCH & WRITING ============ -->
+  <section id="research" class="sec-divider">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <p class="eyebrow">Research &amp; writing</p>
+        <h2>Operate. Document. Publish.</h2>
+      </div>
+      <div class="pub-grid">
+        <a class="pub-card reveal" href="https://scholar.google.com/citations?user=9XfmKlkAAAAJ&amp;hl=en" target="_blank" rel="noopener">
+          <span class="pub-kicker">Research · Google Scholar</span>
+          <h3>Published research</h3>
+          <p>Peer-indexed work on network automation and infrastructure systems — bringing engineering rigor from the change window to the literature.</p>
+          <span class="pub-link">View publications on Google Scholar ↗</span>
+        </a>
+        <a class="pub-card reveal" href="https://medium.com/@burigensunilkumar" target="_blank" rel="noopener">
+          <span class="pub-kicker">Writing · Medium</span>
+          <h3>Field notes</h3>
+          <p>Articles on network engineering, automation, and applied AI — written from the operator's seat, not the sidelines.</p>
+          <span class="pub-link">Read articles on Medium ↗</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CONTACT ============ -->
+  <section id="contact" class="sec-divider">
+    <div class="wrap">
+      <div class="contact-inner">
+        <p class="eyebrow reveal">Contact</p>
+        <h2 class="reveal">Let's route a conversation.</h2>
+        <p class="reveal">Network architecture, automation at scale, or local AI for operations — if it's an interesting infrastructure problem, my inbox is open.</p>
+        <div class="contact-links reveal">
+          <a class="btn btn-primary" href="mailto:sunilkb1018@gmail.com">sunilkb1018@gmail.com</a>
+          <a class="btn btn-ghost" href="https://www.linkedin.com/in/sunilburigen/" target="_blank" rel="noopener">LinkedIn ↗</a>
+          <a class="btn btn-ghost" href="https://github.com/burigensunil88" target="_blank" rel="noopener">GitHub ↗</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Sunil Burigen · Bellevue, WA</span>
+    <span>
+      <a href="https://scholar.google.com/citations?user=9XfmKlkAAAAJ&amp;hl=en" target="_blank" rel="noopener">scholar</a> ·
+      <a href="https://medium.com/@burigensunilkumar" target="_blank" rel="noopener">medium</a> ·
+      uptime: <span id="uptime">0s</span>
+    </span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- live clock ---------- */
+  var clockEl = document.getElementById("clock");
+  function tick(){
+    var d = new Date();
+    clockEl.textContent = d.toLocaleTimeString("en-US",{hour12:false});
+  }
+  tick(); setInterval(tick,1000);
+
+  /* ---------- session uptime ---------- */
+  var upEl = document.getElementById("uptime"), t0 = Date.now();
+  setInterval(function(){
+    var s = Math.floor((Date.now()-t0)/1000);
+    upEl.textContent = s<60 ? s+"s" : Math.floor(s/60)+"m "+(s%60)+"s";
+  },1000);
+
+  /* ---------- scroll reveals ---------- */
+  var revealEls = document.querySelectorAll(".reveal");
+  if (reduced || !("IntersectionObserver" in window)) {
+    revealEls.forEach(function(el){ el.classList.add("in"); });
+  } else {
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); }
+      });
+    },{threshold:.12});
+    revealEls.forEach(function(el){ io.observe(el); });
+  }
+
+  /* ---------- network topology canvas ---------- */
+  var canvas = document.getElementById("net");
+  var ctx = canvas.getContext("2d");
+  var hero = canvas.parentElement;
+  var DPR = Math.min(window.devicePixelRatio||1, 2);
+  var W=0, H=0, nodes=[], packets=[], mouse={x:-9999,y:-9999};
+  var LINK_DIST = 170;
+
+  function resize(){
+    W = hero.clientWidth; H = hero.clientHeight;
+    canvas.width = W*DPR; canvas.height = H*DPR;
+    canvas.style.width = W+"px"; canvas.style.height = H+"px";
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    var count = W < 640 ? 16 : (W < 1000 ? 24 : 32);
+    LINK_DIST = W < 640 ? 130 : 170;
+    nodes = [];
+    for (var i=0;i<count;i++){
+      nodes.push({
+        x: Math.random()*W,
+        y: Math.random()*H,
+        vx: (Math.random()-.5)*0.18,
+        vy: (Math.random()-.5)*0.18,
+        r: 1.6 + Math.random()*1.6
+      });
+    }
+    packets = [];
+  }
+
+  function neighbors(n){
+    var out=[];
+    for (var i=0;i<nodes.length;i++){
+      var m=nodes[i]; if (m===n) continue;
+      var dx=m.x-n.x, dy=m.y-n.y;
+      if (dx*dx+dy*dy < LINK_DIST*LINK_DIST) out.push(m);
+    }
+    return out;
+  }
+
+  function spawnPacket(){
+    if (packets.length >= 3 || nodes.length<2) return;
+    var start = nodes[(Math.random()*nodes.length)|0];
+    var path=[start], cur=start, prev=null;
+    var hops = 2 + ((Math.random()*3)|0);
+    for (var h=0;h<hops;h++){
+      var ns = neighbors(cur).filter(function(n){return n!==prev;});
+      if (!ns.length) break;
+      var nxt = ns[(Math.random()*ns.length)|0];
+      path.push(nxt); prev=cur; cur=nxt;
+    }
+    if (path.length>1) packets.push({path:path, seg:0, t:0, speed:0.012+Math.random()*0.01});
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+
+    /* links */
+    for (var i=0;i<nodes.length;i++){
+      var a=nodes[i];
+      for (var j=i+1;j<nodes.length;j++){
+        var b=nodes[j], dx=b.x-a.x, dy=b.y-a.y, d2=dx*dx+dy*dy;
+        if (d2 < LINK_DIST*LINK_DIST){
+          var d=Math.sqrt(d2), alpha=(1-d/LINK_DIST)*0.32;
+          var mdx=mouse.x-(a.x+b.x)/2, mdy=mouse.y-(a.y+b.y)/2;
+          var nearMouse = (mdx*mdx+mdy*mdy) < 120*120;
+          ctx.strokeStyle = nearMouse
+            ? "rgba(103,232,249,"+(alpha+0.22)+")"
+            : "rgba(131,144,174,"+alpha+")";
+          ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+        }
+      }
+    }
+
+    /* nodes */
+    for (var k=0;k<nodes.length;k++){
+      var n=nodes[k];
+      var mx=mouse.x-n.x, my=mouse.y-n.y;
+      var hot = (mx*mx+my*my) < 110*110;
+      ctx.fillStyle = hot ? "rgba(103,232,249,0.95)" : "rgba(131,144,174,0.75)";
+      ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,Math.PI*2); ctx.fill();
+      if (hot){
+        ctx.strokeStyle="rgba(103,232,249,0.35)";
+        ctx.beginPath(); ctx.arc(n.x,n.y,n.r+5,0,Math.PI*2); ctx.stroke();
+      }
+    }
+
+    /* packets */
+    for (var p=packets.length-1;p>=0;p--){
+      var pk=packets[p];
+      var A=pk.path[pk.seg], B=pk.path[pk.seg+1];
+      if (!A || !B){ packets.splice(p,1); continue; }
+      pk.t += pk.speed;
+      if (pk.t>=1){ pk.t=0; pk.seg++; if (pk.seg>=pk.path.length-1){ packets.splice(p,1); continue; } A=pk.path[pk.seg]; B=pk.path[pk.seg+1]; }
+      var px=A.x+(B.x-A.x)*pk.t, py=A.y+(B.y-A.y)*pk.t;
+      var g=ctx.createRadialGradient(px,py,0,px,py,9);
+      g.addColorStop(0,"rgba(255,180,84,0.95)");
+      g.addColorStop(1,"rgba(255,180,84,0)");
+      ctx.fillStyle=g;
+      ctx.beginPath(); ctx.arc(px,py,9,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle="#FFB454";
+      ctx.beginPath(); ctx.arc(px,py,2.2,0,Math.PI*2); ctx.fill();
+    }
+  }
+
+  function step(){
+    for (var i=0;i<nodes.length;i++){
+      var n=nodes[i];
+      n.x+=n.vx; n.y+=n.vy;
+      if (n.x<0||n.x>W) n.vx*=-1;
+      if (n.y<0||n.y>H) n.vy*=-1;
+    }
+    draw();
+    requestAnimationFrame(step);
+  }
+
+  resize();
+  window.addEventListener("resize", resize);
+  hero.addEventListener("mousemove", function(e){
+    var r=canvas.getBoundingClientRect();
+    mouse.x=e.clientX-r.left; mouse.y=e.clientY-r.top;
+  });
+  hero.addEventListener("mouseleave", function(){ mouse.x=-9999; mouse.y=-9999; });
+
+  if (reduced){
+    draw();
+  } else {
+    setInterval(spawnPacket, 900);
+    requestAnimationFrame(step);
+  }
+})();
+</script>
+</body>
+</html>
