@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0A0E1A">
+<title>Trace a Website to the Edge of the Internet — Sunil Burigen</title>
+<meta name="description" content="Using only dig, curl, and traceroute, follow one web request from a laptop to the machine that answers it — and learn anycast, CDN caching, and BGP by watching real systems work.">
+<link rel="icon" href='data:image/svg+xml,<svg%20xmlns="http://www.w3.org/2000/svg"%20viewBox="0%200%2064%2064"><rect%20width="64"%20height="64"%20rx="14"%20fill="%230A0E1A"/><path%20d="M14%2020L32%2032L50%2018M32%2032L48%2048M32%2032L15%2046"%20stroke="%238390AE"%20stroke-width="2"%20fill="none"/><circle%20cx="14"%20cy="20"%20r="4"%20fill="%238390AE"/><circle%20cx="50"%20cy="18"%20r="4"%20fill="%238390AE"/><circle%20cx="48"%20cy="48"%20r="4"%20fill="%238390AE"/><circle%20cx="15"%20cy="46"%20r="4"%20fill="%238390AE"/><circle%20cx="32"%20cy="32"%20r="6"%20fill="%23FFB454"/></svg>'>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink-deep:#0A0E1A;--ink-raised:#0F1526;--ink-panel:#121A2E;
+  --line:rgba(148,163,196,0.16);--line-soft:rgba(148,163,196,0.09);
+  --text-bright:#E8ECF6;--text-body:#B7C0D8;--text-dim:#8390AE;
+  --amber:#FFB454;--amber-deep:#E89A33;--cyan:#67E8F9;--ok:#4ADE80;
+  --font-display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
+  --font-body:"Instrument Sans",system-ui,-apple-system,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --max:740px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{background:var(--ink-deep);color:var(--text-body);font-family:var(--font-body);font-size:18px;line-height:1.72;-webkit-font-smoothing:antialiased}
+::selection{background:var(--amber);color:var(--ink-deep)}
+a{color:var(--amber);text-decoration:none}
+a:hover{text-decoration:underline}
+a:focus-visible,button:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:2px}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 28px}
+.skip{position:absolute;left:-9999px;top:0;background:var(--amber);color:var(--ink-deep);padding:8px 14px;font-family:var(--font-mono);font-size:13px;z-index:100}
+.skip:focus{left:12px;top:12px}
+
+/* nav */
+.nav{position:sticky;top:0;z-index:50;background:rgba(10,14,26,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line-soft)}
+.nav .wrap{display:flex;justify-content:space-between;align-items:center;padding-top:16px;padding-bottom:16px;max-width:920px}
+.brand{font-family:var(--font-mono);font-size:15px;font-weight:600;color:var(--text-bright);letter-spacing:.02em}
+.brand .tick{color:var(--amber)}
+.brand:hover{text-decoration:none}
+.nav-links{display:flex;gap:24px;font-family:var(--font-mono);font-size:12.5px;letter-spacing:.04em}
+.nav-links a{color:var(--text-dim);transition:color .18s ease}
+.nav-links a:hover,.nav-links a.here{color:var(--amber);text-decoration:none}
+
+/* article header */
+.art-head{padding:72px 0 40px;border-bottom:1px solid var(--line-soft)}
+.crumb{font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;color:var(--text-dim);margin-bottom:26px}
+.crumb a{color:var(--text-dim)}
+.crumb a:hover{color:var(--amber);text-decoration:none}
+.art-meta{font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);margin-bottom:18px;display:flex;gap:14px;flex-wrap:wrap}
+.art-meta .tag{color:var(--amber)}
+h1{font-family:var(--font-display);font-size:clamp(2.1rem,4.6vw,3.1rem);font-weight:700;line-height:1.07;letter-spacing:-.015em;color:var(--text-bright)}
+.standfirst{margin-top:24px;font-size:1.16rem;line-height:1.6;color:var(--text-body)}
+
+/* article body */
+article{padding:48px 0 40px}
+article p{margin:0 0 22px}
+article h2{font-family:var(--font-display);font-size:1.6rem;font-weight:650;color:var(--text-bright);line-height:1.2;margin:52px 0 18px;letter-spacing:-.01em}
+article h3{font-family:var(--font-display);font-size:1.22rem;font-weight:600;color:var(--text-bright);margin:36px 0 14px}
+article strong{color:var(--text-bright);font-weight:600}
+article em{color:var(--text-body)}
+article ul{margin:0 0 22px;padding-left:0;list-style:none}
+article li{position:relative;padding-left:26px;margin-bottom:12px}
+article li::before{content:"→";position:absolute;left:0;color:var(--amber);font-family:var(--font-mono)}
+.lead-in{font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);display:block;margin-bottom:10px}
+
+/* code blocks */
+pre{background:var(--ink-raised);border:1px solid var(--line);border-radius:8px;padding:20px 22px;overflow-x:auto;margin:0 0 24px;font-family:var(--font-mono);font-size:13.5px;line-height:1.7;color:var(--text-body)}
+pre .c{color:var(--text-dim)}      /* comment / prompt */
+pre .k{color:var(--amber)}         /* command keyword */
+pre .o{color:var(--cyan)}          /* notable output */
+pre .g{color:var(--ok)}            /* good/hit */
+code{font-family:var(--font-mono);font-size:.88em;background:var(--ink-raised);border:1px solid var(--line-soft);border-radius:4px;padding:1px 6px;color:var(--cyan)}
+pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
+
+/* callout */
+.note{border-left:2px solid var(--amber);background:rgba(255,180,84,0.05);border-radius:0 6px 6px 0;padding:16px 20px;margin:0 0 24px;font-size:.98rem;color:var(--text-body)}
+.note b{color:var(--amber);font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;display:block;margin-bottom:6px}
+
+/* end + bio */
+.art-end{border-top:1px solid var(--line-soft);margin-top:48px;padding-top:32px}
+.bio{font-size:.98rem;color:var(--text-dim)}
+.bio strong{color:var(--text-bright)}
+.back{display:inline-block;margin-top:24px;font-family:var(--font-mono);font-size:13px;color:var(--text-bright)}
+.back:hover{color:var(--amber);text-decoration:none}
+
+footer{border-top:1px solid var(--line-soft);padding:30px 0 40px}
+footer .wrap{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-family:var(--font-mono);font-size:11.5px;letter-spacing:.06em;color:var(--text-dim);max-width:920px}
+footer a{color:var(--text-dim)}
+footer a:hover{color:var(--amber);text-decoration:none}
+@media (max-width:600px){footer .wrap{flex-direction:column;gap:6px}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="../index.html">sburigen<span class="tick">_</span></a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="../index.html">Home</a>
+      <a href="../writing.html" class="here">Writing</a>
+      <a href="../index.html#contact">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="art-head">
+    <div class="wrap">
+      <p class="crumb"><a href="../writing.html">← Writing</a></p>
+      <div class="art-meta">
+        <span class="tag">Networking fundamentals</span>
+        <span>June 2026</span>
+        <span>~12 min read</span>
+      </div>
+      <h1>Trace a Website to the Edge of the Internet</h1>
+      <p class="standfirst">Type a domain, press enter, a page appears. Between those two moments is one of the most elegant distributed systems ever built — and you can watch the whole thing work with three commands you already have installed.</p>
+    </div>
+  </div>
+
+  <article>
+    <div class="wrap">
+
+      <p>Most explanations of how the web works are diagrams. Boxes, arrows, a cloud labeled "Internet." They're fine, but they ask you to take the interesting parts on faith. This article takes the opposite approach: we'll point three standard command-line tools at a website and read what they actually say, layer by layer, until we've followed a single request from a laptop all the way to the machine that answers it.</p>
+
+      <p>The three tools are <code>dig</code> (ask the DNS system a question), <code>curl</code> (make an HTTP request and inspect the response), and <code>traceroute</code> (map the network path packets take). Everything below uses <code>example.com</code> as a neutral stand-in; the output is representative of what a CDN-hosted site returns, lightly trimmed for clarity. Run the same commands against any busy site and you'll see the same patterns.</p>
+
+      <h2>Step 1 — A name is not an address</h2>
+
+      <p>Computers don't route to names; they route to numbers. Before anything else happens, your device has to translate the human-friendly domain into a machine-friendly IP address by asking the Domain Name System. <code>dig</code> lets you ask that same question directly and see the raw answer, with no browser caching in the way:</p>
+
+      <pre><span class="c">$</span> <span class="k">dig</span> example.com +short
+<span class="o">93.184.216.34</span></pre>
+
+      <p>The <code>+short</code> flag strips the formality and returns just the answer. One name, one address. But busy sites usually return <em>several</em> addresses, and that detail turns out to matter:</p>
+
+      <pre><span class="c">$</span> <span class="k">dig</span> cdn-hosted-site.example +short
+<span class="o">151.101.0.10
+151.101.64.10
+151.101.128.10
+151.101.192.10</span></pre>
+
+      <p>Four addresses for one name. Your computer will try the first and fall back to the others if needed — that's the first layer of redundancy. But here's the twist that makes the modern web work, and it's invisible in this output: those addresses are very likely <strong>anycast</strong>. The same number is announced from data centers all over the planet at once, and the network quietly routes you to the nearest one. We'll prove that in Step 3.</p>
+
+      <div class="note">
+        <b>Why dig and not nslookup</b>
+        If you come from a Windows background, <code>nslookup</code> does the same job. <code>dig</code> is the Unix-world equivalent and shows the full DNS response the way it travels on the wire — including record types, TTLs, and the alias chains we'll see next. Both ask the same question; <code>dig</code> just shows more of the answer.
+      </div>
+
+      <h3>The alias chain</h3>
+
+      <p>Ask about the <code>www</code> version of a site and you'll often see a second record type appear — a <strong>CNAME</strong>, which is DNS for "this name is just another name for that name, go look that one up instead":</p>
+
+      <pre><span class="c">$</span> <span class="k">dig</span> www.example.com
+
+<span class="c">;; ANSWER SECTION:</span>
+www.example.com.    3600  IN  <span class="o">CNAME</span>   target.cdn-provider.net.
+target.cdn-provider.net.  60   IN  <span class="o">A</span>      151.101.0.10</pre>
+
+      <p>The lookup resolves in a chain: <code>www</code> is an alias for the CDN's hostname, and <em>that</em> name carries the real address. The reason this exists is maintenance — an alias follows its target forever, so if the provider renumbers its servers, the alias updates itself automatically. One canonical record holds the truth; any number of aliases ride along for free. (A quirk worth knowing: DNS rules forbid a CNAME on the bare root domain, which is why the root usually carries hard-coded address records while only <code>www</code> gets the elegant alias.)</p>
+
+      <h2>Step 2 — The address is a cache, not the website</h2>
+
+      <p>Now we have an address. You might assume it points at "the server with the website on it." It almost never does. For any site behind a CDN, that address belongs to a <strong>cache server at the edge of the network</strong> — close to you geographically — and the real site lives somewhere else entirely. <code>curl</code> can show us the evidence, because the response headers confess the whole arrangement:</p>
+
+      <pre><span class="c">$</span> <span class="k">curl</span> -sI https://example.com | grep -iE <span class="o">"x-cache|age|x-served-by|cache-control"</span>
+cache-control: max-age=600
+age: 0
+x-served-by: <span class="o">cache-sea-xxxx</span>
+x-cache: <span class="o">MISS</span></pre>
+
+      <p>Read those four lines like a witness statement:</p>
+
+      <ul>
+        <li><code>x-served-by: cache-sea-xxxx</code> — the request was answered by a cache node in a Seattle-area point of presence. Not the origin; an edge.</li>
+        <li><code>x-cache: MISS</code> — that edge did <em>not</em> already have the page in local storage, so it reached back to the origin server over the network, fetched the file, served it to me, and kept a copy.</li>
+        <li><code>age: 0</code> — the copy is zero seconds old. Freshly fetched, just now.</li>
+        <li><code>cache-control: max-age=600</code> — the origin's instruction to every cache: keep this copy for 600 seconds, then check back.</li>
+      </ul>
+
+      <p>The interesting part is what happens on the <em>second</em> request. Run the exact same command again within those 600 seconds:</p>
+
+      <pre><span class="c">$</span> <span class="k">curl</span> -sI https://example.com | grep -iE <span class="o">"x-cache|age"</span>
+age: <span class="o">42</span>
+x-cache: <span class="g">HIT</span></pre>
+
+      <p>Now it's a <span style="color:var(--ok)">HIT</span> — served straight from the edge's memory, with an <code>age</code> counting up the seconds since that first fetch populated it. The origin server never heard about this second request at all. <strong>This is the entire economic model of the modern web:</strong> populate a cache once, near each cluster of users, then serve thousands of requests from local memory without ever bothering the origin. It's the same idea as a DNS resolver caching answers — content delivery is just that pattern applied to web pages, with the time-to-live deciding how fresh "fresh" has to be.</p>
+
+      <div class="note">
+        <b>The two-tier model</b>
+        Tier one is the fleet of edge caches answering on that anycast address — fast, local, temporary. Tier two is the origin, the authoritative copy, consulted only on a cache miss. When a site owner publishes a change, the caches expire and re-pull from origin — which is exactly why edits go live "in about a minute" rather than instantly: that minute is the TTL clock and propagation.
+      </div>
+
+      <h2>Step 3 — Following the packets to the edge</h2>
+
+      <p>We've claimed the address is anycast and the server is nearby. <code>traceroute</code> lets us watch the packets actually travel there, printing each network hop along the way. With the <code>-a</code> flag it also annotates each hop with the autonomous system number — the identifier for the network that owns that router — which is what makes the path legible:</p>
+
+      <pre><span class="c">$</span> <span class="k">traceroute</span> -a example.com
+ 1  [AS0]      10.0.0.1                          3 ms     <span class="c"># home router</span>
+ 2  [AS0]      10.x.x.x                          12 ms    <span class="c"># ISP private network</span>
+ 3  [AS7922]   xxx.seattle.isp-backbone.net      14 ms    <span class="c"># ISP, local metro</span>
+ 4  [AS7922]   xxx.seattle.isp-backbone.net      15 ms    <span class="c"># still the ISP</span>
+ 5  [AS7922]   xxx.seattle.isp-backbone.net      14 ms    <span class="c"># ISP edge / peering</span>
+ 6  [AS54113]  cdn-edge.cdn-provider.net         16 ms    <span class="c"># handoff to the CDN</span>
+ 7  [AS54113]  served-from-here                  16 ms    <span class="c"># the edge that answers</span></pre>
+
+      <p>Read the autonomous-system numbers in brackets and the whole journey becomes obvious. Hops 1–2 are inside your home and your ISP's access network (the <code>[AS0]</code> just means private, unrouted address space). Hops 3–5 stay inside a single ISP — and notice the hostnames name a specific city, all in your own metro area, all under 15 milliseconds away. Hop 6 is the moment your packets cross from your ISP into the CDN's network — a single handoff between two organizations. Hop 7 is the edge server that answers.</p>
+
+      <p>The headline: <strong>two networks, about seven hops, sixteen milliseconds, and the packets never left the metropolitan area.</strong> A website "on the internet" turned out to be served from a building a few miles away. That's anycast doing its job — the globally-announced address delivered you to the topologically nearest edge, which for most people is startlingly close.</p>
+
+      <h3>When the trace goes dark — and why that's not a failure</h3>
+
+      <p>Run traceroute against a CDN and you'll often see something alarming: the early hops resolve, then the rest of the output is nothing but asterisks.</p>
+
+      <pre><span class="c">$</span> <span class="k">traceroute</span> example.com
+ 5  xxx.seattle.isp-backbone.net   14 ms
+ 6  <span class="o">* * *</span>
+ 7  <span class="o">* * *</span>
+ 8  <span class="o">* * *</span></pre>
+
+      <p>This does <em>not</em> mean the site is unreachable — you just loaded it with <code>curl</code> a moment ago. It means the diagnostic plane is filtered, not that the data plane is down. The default <code>traceroute</code> sends UDP probes and listens for "time exceeded" replies; many CDN edges simply decline to send those replies, because they cost CPU and reveal internal structure to strangers. The page still loads perfectly; the network just stops <em>narrating</em> the path. Switch the probe type to ICMP and the edges often answer again:</p>
+
+      <pre><span class="c">$</span> <span class="k">traceroute</span> -aI example.com   <span class="c"># -I uses ICMP echo instead of UDP</span></pre>
+
+      <p>The distinction between "the path is broken" and "the path won't describe itself" is one every network engineer internalizes early, usually after filing one false outage ticket. The control plane and the data plane are independent: silence on one says nothing about the health of the other.</p>
+
+      <h2>What you've actually seen</h2>
+
+      <p>Three commands, and the abstract diagram became concrete and specific. A name resolved to four anycast addresses through a chain of DNS records. Those addresses turned out to be edge caches, not the website, populating themselves on first request and serving everyone after from local memory under a 600-second freshness contract. And the packets themselves traveled two networks and a handful of milliseconds to reach an edge server practically next door.</p>
+
+      <p>None of this required special access or privileged tools — just curiosity pointed at the response headers and routing tables that are sitting there in plain sight on every request you make. The next time a page loads in the blink of an eye, you'll know it isn't magic. It's a cache near your house, answering on an address that exists in a hundred places at once, backed by an origin it only bothers when it has to. That's the architecture serving the entire web — and now you can watch it work.</p>
+
+      <div class="art-end">
+        <p class="bio"><strong>Sunil Burigen</strong> is a senior network engineer focused on data center fabrics, infrastructure automation, and the systems that keep large networks running. More writing and background at <a href="../index.html">the home page</a>.</p>
+        <a class="back" href="../writing.html">← Back to all writing</a>
+      </div>
+
+    </div>
+  </article>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Sunil Burigen · Bellevue, WA</span>
+    <span><a href="../index.html">home</a> · <a href="../writing.html">writing</a></span>
+  </div>
+</footer>
+</body>
+</html>
