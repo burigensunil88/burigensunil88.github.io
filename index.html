@@ -208,7 +208,8 @@ h2{
 .hop .env::before{content:"env: ";color:var(--amber)}
 
 /* ---------- research & writing ---------- */
-.pub-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.pub-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+@media (max-width:880px){.pub-grid{grid-template-columns:1fr 1fr}}
 @media (max-width:760px){.pub-grid{grid-template-columns:1fr}}
 .pub-card{
   border:1px solid var(--line);border-radius:8px;background:var(--ink-raised);
@@ -276,6 +277,7 @@ footer a:hover{color:var(--amber)}
       <a href="#work">Work</a>
       <a href="#experience">Experience</a>
       <a href="#research">Research</a>
+      <a href="writing.html">Field Notes</a>
       <a href="#contact">Contact</a>
     </nav>
     <button class="menu-btn" aria-label="Open menu" aria-expanded="false"><span></span><span></span><span></span></button>
@@ -487,17 +489,23 @@ footer a:hover{color:var(--amber)}
         <h2>Operate. Document. Publish.</h2>
       </div>
       <div class="pub-grid">
+        <a class="pub-card reveal" href="writing.html">
+          <span class="pub-kicker">Field Notes · On this site</span>
+          <h3>Field Notes</h3>
+          <p>Articles on network engineering and the internet's plumbing — explained by tracing real systems rather than reciting theory.</p>
+          <span class="pub-link">Read the latest articles →</span>
+        </a>
         <a class="pub-card reveal" href="https://scholar.google.com/citations?user=9XfmKlkAAAAJ&amp;hl=en" target="_blank" rel="noopener">
           <span class="pub-kicker">Research · Google Scholar</span>
           <h3>Published research</h3>
-          <p>Peer-indexed work on network automation and infrastructure systems — bringing engineering rigor from the change window to the literature.</p>
-          <span class="pub-link">View publications on Google Scholar ↗</span>
+          <p>Work on network automation and infrastructure systems — bringing engineering rigor from the change window to the literature.</p>
+          <span class="pub-link">View on Google Scholar ↗</span>
         </a>
         <a class="pub-card reveal" href="https://medium.com/@burigensunilkumar" target="_blank" rel="noopener">
           <span class="pub-kicker">Writing · Medium</span>
-          <h3>Field notes</h3>
-          <p>Articles on network engineering, automation, and applied AI — written from the operator's seat, not the sidelines.</p>
-          <span class="pub-link">Read articles on Medium ↗</span>
+          <h3>More on Medium</h3>
+          <p>Earlier technical articles on automation, cloud networking, and applied AI, published on Medium.</p>
+          <span class="pub-link">Read on Medium ↗</span>
         </a>
       </div>
     </div>
