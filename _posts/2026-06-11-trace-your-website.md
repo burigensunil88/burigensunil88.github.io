@@ -1,129 +1,15 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#0A0E1A">
-<title>Trace a Website to the Edge of the Internet — Sunil Burigen</title>
-<meta name="description" content="Using only dig, curl, and traceroute, follow one web request from a laptop to the machine that answers it — and learn anycast, CDN caching, and BGP by watching real systems work.">
-<link rel="icon" href='data:image/svg+xml,<svg%20xmlns="http://www.w3.org/2000/svg"%20viewBox="0%200%2064%2064"><rect%20width="64"%20height="64"%20rx="14"%20fill="%230A0E1A"/><path%20d="M14%2020L32%2032L50%2018M32%2032L48%2048M32%2032L15%2046"%20stroke="%238390AE"%20stroke-width="2"%20fill="none"/><circle%20cx="14"%20cy="20"%20r="4"%20fill="%238390AE"/><circle%20cx="50"%20cy="18"%20r="4"%20fill="%238390AE"/><circle%20cx="48"%20cy="48"%20r="4"%20fill="%238390AE"/><circle%20cx="15"%20cy="46"%20r="4"%20fill="%238390AE"/><circle%20cx="32"%20cy="32"%20r="6"%20fill="%23FFB454"/></svg>'>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-:root{
-  --ink-deep:#0A0E1A;--ink-raised:#0F1526;--ink-panel:#121A2E;
-  --line:rgba(148,163,196,0.16);--line-soft:rgba(148,163,196,0.09);
-  --text-bright:#E8ECF6;--text-body:#B7C0D8;--text-dim:#8390AE;
-  --amber:#FFB454;--amber-deep:#E89A33;--cyan:#67E8F9;--ok:#4ADE80;
-  --font-display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
-  --font-body:"Instrument Sans",system-ui,-apple-system,sans-serif;
-  --font-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
-  --max:740px;
-}
-*{margin:0;padding:0;box-sizing:border-box}
-html{scroll-behavior:smooth}
-@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
-body{background:var(--ink-deep);color:var(--text-body);font-family:var(--font-body);font-size:18px;line-height:1.72;-webkit-font-smoothing:antialiased}
-::selection{background:var(--amber);color:var(--ink-deep)}
-a{color:var(--amber);text-decoration:none}
-a:hover{text-decoration:underline}
-a:focus-visible,button:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:2px}
-.wrap{max-width:var(--max);margin:0 auto;padding:0 28px}
-.skip{position:absolute;left:-9999px;top:0;background:var(--amber);color:var(--ink-deep);padding:8px 14px;font-family:var(--font-mono);font-size:13px;z-index:100}
-.skip:focus{left:12px;top:12px}
+---
+layout: post
+title: "Trace a Website to the Edge of the Internet"
+description: "Using only dig, curl, and traceroute, follow one web request from a laptop to the machine that answers it — and learn anycast, CDN caching, and BGP by watching real systems work."
+tag: "Networking fundamentals"
+readtime: "~12 min read"
+standfirst: "Type a domain, press enter, a page appears. Between those two moments is one of the most elegant distributed systems ever built — and you can watch the whole thing work with three commands you already have installed."
+date: 2026-06-11
+slug: trace-your-website
+---
 
-/* nav */
-.nav{position:sticky;top:0;z-index:50;background:rgba(10,14,26,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line-soft)}
-.nav .wrap{display:flex;justify-content:space-between;align-items:center;padding-top:16px;padding-bottom:16px;max-width:920px}
-.brand{font-family:var(--font-mono);font-size:15px;font-weight:600;color:var(--text-bright);letter-spacing:.02em}
-.brand .tick{color:var(--amber)}
-.brand:hover{text-decoration:none}
-.nav-links{display:flex;gap:24px;font-family:var(--font-mono);font-size:12.5px;letter-spacing:.04em}
-.nav-links a{color:var(--text-dim);transition:color .18s ease}
-.nav-links a:hover,.nav-links a.here{color:var(--amber);text-decoration:none}
-
-/* article header */
-.art-head{padding:72px 0 40px;border-bottom:1px solid var(--line-soft)}
-.crumb{font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;color:var(--text-dim);margin-bottom:26px}
-.crumb a{color:var(--text-dim)}
-.crumb a:hover{color:var(--amber);text-decoration:none}
-.art-meta{font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);margin-bottom:18px;display:flex;gap:14px;flex-wrap:wrap}
-.art-meta .tag{color:var(--amber)}
-h1{font-family:var(--font-display);font-size:clamp(2.1rem,4.6vw,3.1rem);font-weight:700;line-height:1.07;letter-spacing:-.015em;color:var(--text-bright)}
-.standfirst{margin-top:24px;font-size:1.16rem;line-height:1.6;color:var(--text-body)}
-
-/* article body */
-article{padding:48px 0 40px}
-article p{margin:0 0 22px}
-article h2{font-family:var(--font-display);font-size:1.6rem;font-weight:650;color:var(--text-bright);line-height:1.2;margin:52px 0 18px;letter-spacing:-.01em}
-article h3{font-family:var(--font-display);font-size:1.22rem;font-weight:600;color:var(--text-bright);margin:36px 0 14px}
-article strong{color:var(--text-bright);font-weight:600}
-article em{color:var(--text-body)}
-article ul{margin:0 0 22px;padding-left:0;list-style:none}
-article li{position:relative;padding-left:26px;margin-bottom:12px}
-article li::before{content:"→";position:absolute;left:0;color:var(--amber);font-family:var(--font-mono)}
-.lead-in{font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);display:block;margin-bottom:10px}
-
-/* code blocks */
-pre{background:var(--ink-raised);border:1px solid var(--line);border-radius:8px;padding:20px 22px;overflow-x:auto;margin:0 0 24px;font-family:var(--font-mono);font-size:13.5px;line-height:1.7;color:var(--text-body)}
-pre .c{color:var(--text-dim)}      /* comment / prompt */
-pre .k{color:var(--amber)}         /* command keyword */
-pre .o{color:var(--cyan)}          /* notable output */
-pre .g{color:var(--ok)}            /* good/hit */
-code{font-family:var(--font-mono);font-size:.88em;background:var(--ink-raised);border:1px solid var(--line-soft);border-radius:4px;padding:1px 6px;color:var(--cyan)}
-pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
-
-/* callout */
-.note{border-left:2px solid var(--amber);background:rgba(255,180,84,0.05);border-radius:0 6px 6px 0;padding:16px 20px;margin:0 0 24px;font-size:.98rem;color:var(--text-body)}
-.note b{color:var(--amber);font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;display:block;margin-bottom:6px}
-
-/* end + bio */
-.art-end{border-top:1px solid var(--line-soft);margin-top:48px;padding-top:32px}
-.bio{font-size:.98rem;color:var(--text-dim)}
-.bio strong{color:var(--text-bright)}
-.back{display:inline-block;margin-top:24px;font-family:var(--font-mono);font-size:13px;color:var(--text-bright)}
-.back:hover{color:var(--amber);text-decoration:none}
-
-footer{border-top:1px solid var(--line-soft);padding:30px 0 40px}
-footer .wrap{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-family:var(--font-mono);font-size:11.5px;letter-spacing:.06em;color:var(--text-dim);max-width:920px}
-footer a{color:var(--text-dim)}
-footer a:hover{color:var(--amber);text-decoration:none}
-@media (max-width:600px){footer .wrap{flex-direction:column;gap:6px}}
-</style>
-</head>
-<body>
-<a class="skip" href="#main">Skip to content</a>
-
-<header class="nav">
-  <div class="wrap">
-    <a class="brand" href="../index.html">sburigen<span class="tick">_</span></a>
-    <nav class="nav-links" aria-label="Sections">
-      <a href="../index.html">Home</a>
-      <a href="../writing.html" class="here">Field Notes</a>
-      <a href="../index.html#contact">Contact</a>
-    </nav>
-  </div>
-</header>
-
-<main id="main">
-  <div class="art-head">
-    <div class="wrap">
-      <p class="crumb"><a href="../writing.html">← Field Notes</a></p>
-      <div class="art-meta">
-        <span class="tag">Networking fundamentals</span>
-        <span>June 2026</span>
-        <span>~12 min read</span>
-      </div>
-      <h1>Trace a Website to the Edge of the Internet</h1>
-      <p class="standfirst">Type a domain, press enter, a page appears. Between those two moments is one of the most elegant distributed systems ever built — and you can watch the whole thing work with three commands you already have installed.</p>
-    </div>
-  </div>
-
-  <article>
-    <div class="wrap">
-
-      <p>Most explanations of how the web works are diagrams. Boxes, arrows, a cloud labeled "Internet." They're fine, but they ask you to take the interesting parts on faith. This article takes the opposite approach: we'll point three standard command-line tools at a website and read what they actually say, layer by layer, until we've followed a single request from a laptop all the way to the machine that answers it.</p>
+<p>Most explanations of how the web works are diagrams. Boxes, arrows, a cloud labeled "Internet." They're fine, but they ask you to take the interesting parts on faith. This article takes the opposite approach: we'll point three standard command-line tools at a website and read what they actually say, layer by layer, until we've followed a single request from a laptop all the way to the machine that answers it.</p>
 
       <p>The three tools are <code>dig</code> (ask the DNS system a question), <code>curl</code> (make an HTTP request and inspect the response), and <code>traceroute</code> (map the network path packets take). Everything below uses <code>example.com</code> as a neutral stand-in; the output is representative of what a CDN-hosted site returns, lightly trimmed for clarity. Run the same commands against any busy site and you'll see the same patterns.</p>
 
@@ -231,21 +117,3 @@ x-cache: <span class="g">HIT</span></pre>
       <p>Three commands, and the abstract diagram became concrete and specific. A name resolved to four anycast addresses through a chain of DNS records. Those addresses turned out to be edge caches, not the website, populating themselves on first request and serving everyone after from local memory under a 600-second freshness contract. And the packets themselves traveled two networks and a handful of milliseconds to reach an edge server practically next door.</p>
 
       <p>None of this required special access or privileged tools — just curiosity pointed at the response headers and routing tables that are sitting there in plain sight on every request you make. The next time a page loads in the blink of an eye, you'll know it isn't magic. It's a cache near your house, answering on an address that exists in a hundred places at once, backed by an origin it only bothers when it has to. That's the architecture serving the entire web — and now you can watch it work.</p>
-
-      <div class="art-end">
-        <p class="bio"><strong>Sunil Burigen</strong> is a senior network engineer focused on data center fabrics, infrastructure automation, and the systems that keep large networks running. More writing and background at <a href="../index.html">the home page</a>.</p>
-        <a class="back" href="../writing.html">← Back to all Field Notes</a>
-      </div>
-
-    </div>
-  </article>
-</main>
-
-<footer>
-  <div class="wrap">
-    <span>© 2026 Sunil Burigen · Bellevue, WA</span>
-    <span><a href="../index.html">home</a> · <a href="../writing.html">field notes</a></span>
-  </div>
-</footer>
-</body>
-</html>

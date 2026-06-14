@@ -1,3 +1,6 @@
+---
+layout: null
+---
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -70,11 +73,11 @@ footer a:hover{color:var(--amber)}
 
 <header class="nav">
   <div class="wrap">
-    <a class="brand" href="index.html">sburigen<span class="tick">_</span></a>
+    <a class="brand" href="{{ '/' | relative_url }}">sburigen<span class="tick">_</span></a>
     <nav class="nav-links" aria-label="Sections">
-      <a href="index.html">Home</a>
-      <a href="writing.html" class="here">Field Notes</a>
-      <a href="index.html#contact">Contact</a>
+      <a href="{{ '/' | relative_url }}">Home</a>
+      <a href="{{ '/writing.html' | relative_url }}" class="here">Field Notes</a>
+      <a href="{{ '/index.html#contact' | relative_url }}">Contact</a>
     </nav>
   </div>
 </header>
@@ -90,20 +93,18 @@ footer a:hover{color:var(--amber)}
 
   <section class="list">
     <div class="wrap">
-
-      <a class="post" href="posts/trace-your-website.html">
+      {% for post in site.posts %}
+      <a class="post" href="{{ post.url | relative_url }}">
         <div class="post-meta">
-          <span class="tag">Networking fundamentals</span>
-          <span>June 2026</span>
-          <span>~12 min read</span>
+          <span class="tag">{{ post.tag }}</span>
+          <span>{{ post.date | date: "%B %Y" }}</span>
+          <span>{{ post.readtime }}</span>
         </div>
-        <h2>Trace a Website to the Edge of the Internet</h2>
-        <p>A single static page is served by a global fleet of caches you can watch work. Using only dig, curl, and traceroute, we follow one request from a laptop to the machine that answers it — and explain anycast, CDN caching, and BGP along the way.</p>
+        <h2>{{ post.title }}</h2>
+        <p>{{ post.description }}</p>
         <span class="more">Read the article →</span>
       </a>
-
-      <!-- Add new posts above this line, newest first. Copy the block above, change the link, meta, title, and summary. -->
-
+      {% endfor %}
     </div>
   </section>
 </main>
@@ -111,7 +112,7 @@ footer a:hover{color:var(--amber)}
 <footer>
   <div class="wrap">
     <span>© 2026 Sunil Burigen · Bellevue, WA</span>
-    <span><a href="index.html">home</a> · <a href="index.html#contact">contact</a></span>
+    <span><a href="{{ '/' | relative_url }}">home</a> · <a href="{{ '/index.html#contact' | relative_url }}">contact</a></span>
   </div>
 </footer>
 </body>

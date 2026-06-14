@@ -1,0 +1,16 @@
+title: Sunil Burigen
+description: Senior Network Engineer — networks, automation, and applied AI.
+url: "https://sunilburigen.com"
+
+# Article URLs become /posts/<slug>.html to match the pre-Jekyll links
+permalink: /posts/:slug.html
+
+# Don't let Jekyll process the big static homepage or these files
+exclude:
+  - README.md
+  - .gitignore
+
+# Use the kramdown markdown engine (GitHub Pages default) and allow inline HTML
+markdown: kramdown
+kramdown:
+  input: GFM
