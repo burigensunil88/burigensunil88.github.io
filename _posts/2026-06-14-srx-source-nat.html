@@ -1,0 +1,158 @@
+---
+layout: post
+title: "Source NAT on the SRX: Anatomy of a Silent Failure"
+description: "How source NAT works on Junos SRX, how to read the session table like an operator, and the re-IP failure mode that produces zero errors, zero logs, and misleading test results."
+tag: "Junos & security"
+readtime: "~14 min read"
+standfirst: "Source NAT is the layer nobody thinks about until the internet dies with no errors, no logs, and every obvious test lying to you. Here is how it actually works, how to verify it in seconds, and the failure mode that hides in plain sight."
+date: 2026-06-14
+---
+
+<p>Every packet leaving a private network through a firewall gets its return address rewritten, and almost nobody watches it happen. Source NAT is plumbing: silent when healthy, and — this is the dangerous part — <em>equally silent when broken</em>. A misconfigured security policy denies traffic and writes a log. A missing route shows up in the routing table. But a source NAT rule that no longer matches raises no alarm at all; the firewall just forwards packets with private return addresses into a network that will never answer them.</p>
+
+<p>This article covers source NAT on Junos SRX three ways: the mechanics, using a live session as the worked example; the configuration structure and why rule order carries meaning; and a case study of the failure mode that makes this feature worth writing about — a re-IP migration that killed internet access without producing a single error. The configuration and incident below are a composite drawn from real operations, rebuilt on documentation addressing (<code>RFC 5737</code> ranges and private space), so the commands and outputs are representative — run them on any SRX and you'll see the same shapes.</p>
+
+<h2>Part 1 — What source NAT actually does</h2>
+
+<p>The setup: a LAN on <code>10.20.30.0/24</code> sits behind an SRX whose internet-facing interface <code>ge-0/0/0</code> holds the public address <code>198.51.100.2</code>. A host at <code>10.20.30.50</code> sends an NTP query to a time server at <code>203.0.113.10</code>. Private addresses aren't routable on the internet — if that packet left carrying its real source, the reply would have nowhere to go. So the SRX rewrites the source to its own public address on the way out, and un-rewrites the reply on the way back. The session table shows the whole arrangement:</p>
+
+<pre><span class="c">></span> <span class="k">show security flow session</span> destination-prefix 203.0.113.10
+Session ID: 4821, Policy name: lan-to-internet/7, Timeout: 58
+<span class="o">In:  10.20.30.50/54321 --> 203.0.113.10/123;udp,</span>  If: irb.30
+<span class="o">Out: 203.0.113.10/123 --> 198.51.100.2/61102;udp,</span> If: ge-0/0/0.0</pre>
+
+<div class="note">
+<b>How to read In: and Out: — the misreading that costs hours</b>
+These are not "the packet arriving" and "the packet leaving." They are the <strong>two wings of one conversation</strong>. <code>In:</code> is the forward wing — the client's traffic as it enters the firewall, shown with its original, pre-NAT source. <code>Out:</code> is the <em>return</em> wing — what the far end sends back, addressed to the firewall's translated identity. If translation is working, the Out wing's destination is your public address. If you ever see the private address in the Out wing's destination, NAT did not happen for this session.
+</div>
+
+<p>Notice one more detail in that output: the port changed too — <code>54321</code> became <code>61102</code>. That's port address translation, and it's what lets hundreds of internal hosts share one public address. The source IP alone can't distinguish their flows once everyone appears as <code>198.51.100.2</code>; the rewritten source port becomes the demultiplexing key the firewall uses to route each reply back to the right internal host. One public address, ~64,000 usable ports, thousands of concurrent conversations.</p>
+
+<h2>Part 2 — Configuration structure</h2>
+
+<p>Source NAT on the SRX is organized as <strong>rule-sets scoped by zone context</strong>, with ordered rules inside. Here's a representative LAN-to-internet rule-set, including the pattern that matters most in real deployments — the VPN exemption:</p>
+
+<pre>security {
+    nat {
+        source {
+            rule-set lan-to-internet {
+                <span class="k">from zone LAN;</span>
+                <span class="k">to zone WAN;</span>
+                rule vpn-exempt {
+                    match {
+                        source-address 10.20.30.0/24;
+                        destination-address 10.99.0.0/16;
+                    }
+                    then {
+                        <span class="o">source-nat off;</span>
+                    }
+                }
+                rule corp-out {
+                    match {
+                        source-address 10.20.30.0/24;
+                    }
+                    then {
+                        source-nat {
+                            <span class="o">interface;</span>
+                        }
+                    }
+                }
+            }
+        }
+    }
+}</pre>
+
+<p>Three things carry the meaning here.</p>
+
+<p><strong>The zone context selects the rule-set.</strong> <code>from zone LAN; to zone WAN;</code> means this rule-set is only consulted for traffic entering from the LAN zone and leaving toward the WAN zone. Traffic taking a different path — LAN to a VPN zone, for instance — never touches these rules. That zone scoping is a feature, not a limitation: it's what lets internet-bound and tunnel-bound traffic behave completely differently without the rules fighting each other.</p>
+
+<p><strong>Rules evaluate top-down, first match wins.</strong> Within the rule-set, the first rule whose match conditions fit the packet decides the outcome, and evaluation stops. That's why <code>vpn-exempt</code> sits <em>above</em> <code>corp-out</code>: traffic headed for the remote tunnel networks (<code>10.99.0.0/16</code>) matches the exemption first and keeps its original addressing — which the far side's VPN selectors and routing expect — while everything else falls through to the catch-all and gets translated. Swap the order and the exemption never fires; the catch-all eats everything first. On the SRX, <code>insert</code> exists precisely because rule position is configuration.</p>
+
+<p><strong>The <code>then</code> clause picks one of three translations.</strong> <code>interface</code> translates to the egress interface's address with port translation — the standard, zero-maintenance choice for internet access. <code>pool</code> translates into a dedicated block of public addresses you define — used when the far end filters by source, when you need port preservation, or when one address isn't enough. And <code>off</code> exempts the traffic from translation entirely — the VPN pattern above, and the sharpest tool in the set because forgetting it exists is how tunnel traffic mysteriously breaks.</p>
+
+<h2>Part 3 — Verification, fastest first</h2>
+
+<p>Three checks, in the order an operator should reach for them.</p>
+
+<p><strong>The session table is the ground truth.</strong> One command, and the Out wing either shows your public address or it doesn't (see Part 1). This is a per-flow answer: it tells you what happened to <em>this</em> conversation.</p>
+
+<p><strong>Rule hit counters are the fastest aggregate check.</strong></p>
+
+<pre><span class="c">></span> <span class="k">show security nat source rule all</span>
+source NAT rule: corp-out            Rule-set: lan-to-internet
+  From zone                  : LAN
+  To zone                    : WAN
+  Match
+    Source addresses         : 10.20.30.0 - 10.20.30.255
+  Action                     : interface
+  <span class="g">Translation hits           : 48213</span></pre>
+
+<p>Run it twice a few seconds apart while traffic flows. A counter that increments is a rule that's matching. A counter frozen at some old number — or at zero — on the rule you <em>expect</em> to be doing the work is the single fastest tell that traffic is bypassing it. This one habit finds most NAT problems in under a minute.</p>
+
+<p><strong>Watch the wire when you need certainty.</strong> <code>monitor traffic interface ge-0/0/0.0 matching "host 203.0.113.10"</code> shows the packets actually leaving. If the source reads <code>198.51.100.2</code>, translation happened. If it reads <code>10.20.30.x</code>, you're watching untranslated packets walk out the door toward a provider that will drop them.</p>
+
+<h2>Part 4 — Case study: the re-IP that silently killed the internet</h2>
+
+<p>Now the scenario that motivates all of this. Consider a LAN migration: the network is renumbered from a legacy range, <code>192.168.10.0/24</code>, to a new plan, <code>10.20.30.0/24</code>. The change is done carefully — IRB interfaces re-addressed, DHCP scopes rebuilt, security-policy address books updated, routes adjusted, VPN selectors amended. Everything is checked. The commit succeeds. And within minutes: <em>the internet is down for every user</em> — while, confusingly, the site-to-site VPN works perfectly.</p>
+
+<p>The cause: the source NAT rule still says <code>source-address 192.168.10.0/24</code>. Nobody's checklist included it. Traffic from the new subnet enters the rule-set, matches nothing, and here is the crucial behavior — <strong>matching no source NAT rule is not an error</strong>. It simply means "no translation." The SRX forwards the packets exactly as they are, private source and all, the provider drops or black-holes them upstream, and no reply ever comes back.</p>
+
+<p>What makes this failure mode genuinely nasty is how thoroughly it hides:</p>
+
+<ul>
+<li><strong>No error is raised anywhere.</strong> Untranslated forwarding is legitimate behavior (it's literally what <code>source-nat off</code> requests), so there is nothing to log. The commit was clean. The chassis is healthy.</li>
+<li><strong>Outbound looks alive.</strong> The security policy still permits the traffic, so sessions get created and sit in the flow table — with an Out wing quietly showing the private address as the return destination. Traffic <em>is</em> flowing; replies just never arrive.</li>
+<li><strong>The VPN keeps working</strong>, which sends troubleshooting in exactly the wrong direction. Tunnel traffic was updated with the migration and was never supposed to be translated anyway — so the one path that works is the one that proves nothing about the broken one.</li>
+<li><strong>The obvious test lies.</strong> The natural move — ping something public from the firewall itself, sourced from the new LAN gateway address — fails, and the failure means nothing. See below.</li>
+</ul>
+
+<div class="note">
+<b>The testing trap: self-generated traffic bypasses the rule-set</b>
+<code>ping 203.0.113.10 source 10.20.30.1</code> run <em>on the SRX</em> does not traverse the <code>from zone LAN</code> rule-set at all. Traffic the firewall generates itself originates from the internal <code>junos-host</code> context, not from the LAN zone — so it egresses untranslated <strong>regardless of whether your transit NAT is configured correctly</strong>. The ping fails when NAT is broken, and it also fails when NAT is fixed. A test that fails in both states is not a test. Verify transit NAT with transit traffic — a real host behind the firewall — plus the session table and hit counters.
+</div>
+
+<p>The fix, once seen, is one line and a commit:</p>
+
+<pre><span class="c">#</span> <span class="k">set</span> security nat source rule-set lan-to-internet rule corp-out match source-address 10.20.30.0/24
+<span class="c">#</span> <span class="k">delete</span> security nat source rule-set lan-to-internet rule corp-out match source-address 192.168.10.0/24
+<span class="c">#</span> <span class="k">commit</span></pre>
+
+<p>And the verification is the Part 3 sequence in miniature: the <code>corp-out</code> hit counter starts climbing, and a fresh session's Out wing shows <code>198.51.100.2</code> where the private address used to be. Internet restored, root cause understood, no reboot, no drama.</p>
+
+<div class="note">
+<b>The durable lesson: NAT rules bind to addressing</b>
+Source NAT rules reference subnets literally, and addressing changes invalidate them <em>silently</em>. Every re-IP checklist should review, together: interface/IRB addresses, DHCP scopes, security policies and address books, static routes, VPN traffic selectors — <strong>and source NAT match prefixes</strong>. The last one is the one that fails without a sound.</div>
+
+<h2>Part 5 — A troubleshooting sequence that ends arguments</h2>
+
+<p>When "the internet is down" lands on a network with an SRX at the edge, this order settles it fastest:</p>
+
+<ul>
+<li><strong>1. Confirm traffic is reaching the firewall.</strong> <code>show security flow session source-prefix &lt;host&gt;</code> — a session existing means the packet arrived and policy permitted it. No session at all points upstream of NAT entirely (host, switch, VLAN, policy deny).</li>
+<li><strong>2. Read the Out wing.</strong> Translated destination address on the return wing = NAT is fine, look elsewhere. Private address = NAT miss, keep going.</li>
+<li><strong>3. Check rule hit counters</strong> while generating traffic. The rule you expect should be climbing. If a different rule is climbing — or none — you've localized the problem to matching.</li>
+<li><strong>4. Verify the zone context.</strong> <code>show security zones</code> and <code>show route &lt;destination&gt;</code> — confirm the traffic's actual ingress and egress zones are the ones the rule-set names. Interfaces get moved between zones; rule-sets don't follow them.</li>
+<li><strong>5. Check the match prefixes against current reality.</strong> Is the source address in the rule the network's <em>present</em> addressing, or last year's? This is the case-study failure, and it's checked in ten seconds.</li>
+<li><strong>6. Separate policy problems from NAT problems.</strong> A policy deny produces no session (and, if logging is on, a deny log). A NAT miss produces a live session with a wrong Out wing. They present identically to users and completely differently in the flow table.</li>
+</ul>
+
+<p>And the pitfalls that recur, named so they can be recognized: testing from the firewall itself (the <code>junos-host</code> trap above); stale prefixes after any renumbering; exemption rules placed <em>below</em> the catch-all, where first-match-wins guarantees they never fire; zone context drifting after interfaces move; and waiting for a log entry that source NAT will never write — absence of errors is not evidence of health here, only the session table is.</p>
+
+<h2>Quick reference</h2>
+
+<pre><span class="c"># The ground truth — read the Out wing</span>
+<span class="k">show security flow session</span> destination-prefix &lt;ip&gt;
+<span class="k">show security flow session</span> source-prefix &lt;host&gt;
+
+<span class="c"># Fastest aggregate check — counters should climb</span>
+<span class="k">show security nat source rule all</span>
+<span class="k">show security nat source summary</span>
+
+<span class="c"># Context and path</span>
+<span class="k">show security zones</span>
+<span class="k">show route</span> &lt;destination&gt;
+
+<span class="c"># Watch the wire</span>
+<span class="k">monitor traffic interface</span> ge-0/0/0.0 matching "host &lt;ip&gt;"</pre>
+
+<p>Source NAT earns almost no attention because it almost never demands any — which is exactly why its failure mode is so disorienting when it arrives. The defense isn't memorizing configurations; it's the reading habit: know what the two wings of a session mean, trust hit counters over intuition, test with transit traffic instead of the firewall's own, and put NAT prefixes on every addressing-change checklist. The layer that fails silently deserves the checks that don't rely on it speaking up.</p>
